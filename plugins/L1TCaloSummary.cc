@@ -50,9 +50,12 @@
 #include "DataFormats/L1Trigger/interface/L1EtMissParticle.h"
 #include "DataFormats/L1Trigger/interface/L1EtMissParticleFwd.h"
 
-typedef std::vector<uint32_t> L1TCaloRegionCollection;
+#include "DataFormats/L1CaloTrigger/interface/L1CaloCollections.h"
+#include "DataFormats/L1CaloTrigger/interface/L1CaloRegion.h"
 
 #include "DataFormats/Math/interface/LorentzVector.h"
+
+#include "L1Trigger/L1TCaloLayer1/src/L1TCaloLayer1FetchLUTs.hh"
 
 using namespace l1extra;
 using namespace std;
@@ -73,7 +76,7 @@ private:
   virtual void produce(edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
       
-  //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
+  virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
   //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
   //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
   //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
@@ -87,6 +90,17 @@ private:
   edm::EDGetTokenT<HcalTrigPrimDigiCollection> hcalTPSource;
   std::string hcalTPSourceLabel;
 
+  std::vector< std::vector< std::vector < uint32_t > > > ecalLUT;
+  std::vector< std::vector< std::vector < uint32_t > > > hcalLUT;
+  std::vector< std::vector< uint32_t > > hfLUT;
+
+  std::vector< UCTTower* > twrList;
+
+  bool useLSB;
+  bool useCalib;
+  bool useECALLUT;
+  bool useHCALLUT;
+  bool useHFLUT;
   bool verbose;
 
   UCTLayer1 *layer1;
@@ -106,13 +120,21 @@ private:
 // constructors and destructor
 //
 L1TCaloSummary::L1TCaloSummary(const edm::ParameterSet& iConfig) :
-  ecalTPSource(consumes<EcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("ecalTPSource"))),
-  ecalTPSourceLabel(iConfig.getParameter<edm::InputTag>("ecalTPSource").label()),
-  hcalTPSource(consumes<HcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("hcalTPSource"))),
-  hcalTPSourceLabel(iConfig.getParameter<edm::InputTag>("hcalTPSource").label()),
+  ecalTPSource(consumes<EcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("ecalToken"))),
+  ecalTPSourceLabel(iConfig.getParameter<edm::InputTag>("ecalToken").label()),
+  hcalTPSource(consumes<HcalTrigPrimDigiCollection>(iConfig.getParameter<edm::InputTag>("hcalToken"))),
+  hcalTPSourceLabel(iConfig.getParameter<edm::InputTag>("hcalToken").label()),
+  ecalLUT(28, std::vector< std::vector<uint32_t> >(2, std::vector<uint32_t>(256))),
+  hcalLUT(28, std::vector< std::vector<uint32_t> >(2, std::vector<uint32_t>(256))),
+  hfLUT(12, std::vector < uint32_t >(256)),
+  useLSB(iConfig.getParameter<bool>("useLSB")),
+  useCalib(iConfig.getParameter<bool>("useCalib")),
+  useECALLUT(iConfig.getParameter<bool>("useECALLUT")),
+  useHCALLUT(iConfig.getParameter<bool>("useHCALLUT")),
+  useHFLUT(iConfig.getParameter<bool>("useHFLUT")),
   verbose(iConfig.getParameter<bool>("verbose")) 
 {
-  produces< L1TCaloRegionCollection >( "Regions" );
+  produces< L1CaloRegionCollection >( "Regions" );
   produces< L1EmParticleCollection >( "Isolated" ) ;
   produces< L1EmParticleCollection >( "NonIsolated" ) ;
   produces< L1JetParticleCollection >( "Central" ) ;
@@ -123,6 +145,19 @@ L1TCaloSummary::L1TCaloSummary(const edm::ParameterSet& iConfig) :
   produces< L1EtMissParticleCollection >( "MHT" ) ;
   layer1 = new UCTLayer1;
   summaryCard = new UCTSummaryCard(layer1);
+  vector<UCTCrate*> crates = layer1->getCrates();
+  for(uint32_t crt = 0; crt < crates.size(); crt++) {
+    vector<UCTCard*> cards = crates[crt]->getCards();
+    for(uint32_t crd = 0; crd < cards.size(); crd++) {
+      vector<UCTRegion*> regions = cards[crd]->getRegions();
+      for(uint32_t rgn = 0; rgn < regions.size(); rgn++) {
+	vector<UCTTower*> towers = regions[rgn]->getTowers();
+	for(uint32_t twr = 0; twr < towers.size(); twr++) {
+	  twrList.push_back(towers[twr]);
+	}
+      }
+    }
+  }
 }
 
 
@@ -146,7 +181,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<HcalTrigPrimDigiCollection> hcalTPs;
   iEvent.getByToken(hcalTPSource, hcalTPs);
 
-  std::auto_ptr<L1TCaloRegionCollection> rgnCollection(new L1TCaloRegionCollection);
+  std::auto_ptr<L1CaloRegionCollection> rgnCollection (new L1CaloRegionCollection);
   std::auto_ptr<L1EmParticleCollection> iEGCands(new L1EmParticleCollection);
   std::auto_ptr<L1EmParticleCollection> nEGCands(new L1EmParticleCollection);
   std::auto_ptr<L1JetParticleCollection> iTauCands(new L1JetParticleCollection);
@@ -180,21 +215,42 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   for ( const auto& hcalTp : *hcalTPs ) {
     int caloEta = hcalTp.id().ieta();
-    int caloPhi = hcalTp.id().iphi();
-    int et = hcalTp.SOI_compressedEt();
-    bool fg = hcalTp.SOI_fineGrain();
-    if(et != 0) {
-      UCTTowerIndex t = UCTTowerIndex(caloEta, caloPhi);
-      uint32_t featureBits = 0;
-      if(fg) featureBits = 0x1F; // Set all five feature bits for the moment - they are not defined in HW / FW yet!
-      if(!layer1->setHCALData(t, et, featureBits)) {
-	std::cerr << "UCT: Failed loading an HCAL tower" << std::endl;
-	return;
-
+    uint32_t absCaloEta = abs(caloEta);
+    // Tower 29 is not used by Layer-1
+    if(absCaloEta == 29) {
+      continue;
+    }
+    // Prevent usage of HF TPs with Layer-1 emulator if HCAL TPs are old style
+    else if(hcalTp.id().version() == 0 && absCaloEta > 29) {
+      continue;
+    }
+    else if(absCaloEta <= 41) {
+      int caloPhi = hcalTp.id().iphi();
+      if(caloPhi <= 72) {
+	int et = hcalTp.SOI_compressedEt();
+	bool fg = hcalTp.SOI_fineGrain();
+	if(et != 0) {
+	  UCTTowerIndex t = UCTTowerIndex(caloEta, caloPhi);
+	  uint32_t featureBits = 0;
+	  if(fg) featureBits = 0x1F; // Set all five feature bits for the moment - they are not defined in HW / FW yet!
+	  if(!layer1->setHCALData(t, featureBits, et)) {
+	    std::cerr << "caloEta = " << caloEta << "; caloPhi =" << caloPhi << std::endl;
+	    std::cerr << "UCT: Failed loading an HCAL tower" << std::endl;
+	    return;
+	    
+	  }
+	  expectedTotalET += et;
+	}
       }
-      expectedTotalET += et;
+      else {
+	std::cerr << "Illegal Tower: caloEta = " << caloEta << "; caloPhi =" << caloPhi << std::endl;	
+      }
+    }
+    else {
+      std::cerr << "Illegal Tower: caloEta = " << caloEta << std::endl;
     }
   }
+
   if(!layer1->process()) {
     std::cerr << "UCT: Failed to process layer 1" << std::endl;
     exit(1);
@@ -211,13 +267,28 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 	      << expectedTotalET << std::dec << std::endl;
   }
  
+  UCTGeometry g;
+
   vector<UCTCrate*> crates = layer1->getCrates();
   for(uint32_t crt = 0; crt < crates.size(); crt++) {
     vector<UCTCard*> cards = crates[crt]->getCards();
     for(uint32_t crd = 0; crd < cards.size(); crd++) {
       vector<UCTRegion*> regions = cards[crd]->getRegions();
       for(uint32_t rgn = 0; rgn < regions.size(); rgn++) {
-	rgnCollection->push_back(regions[rgn]->rawData());
+	uint32_t rawData = regions[rgn]->rawData();
+	uint32_t regionData = rawData & 0x0000FFFF;
+	// uint32_t regionLoc = rawData >> LocationShift;
+	// uint32_t regionET = rawData & 0x3FF;
+	uint32_t crate = regions[rgn]->getCrate();
+	uint32_t card = regions[rgn]->getCard();
+	uint32_t region = regions[rgn]->getRegion();
+	bool negativeEta = regions[rgn]->isNegativeEta();
+	uint32_t rPhi = g.getUCTRegionPhiIndex(crate, card);
+	if(region < NRegionsInCard) { // We only store the Barrel and Endcap - HF has changed in the upgrade
+	  uint32_t rEta = 10 - region; // UCT region is 0-6 for B/E but GCT eta goes 0-21, 0-3 -HF, 4-10 -B/E, 11-17 +B/E, 18-21 +HF
+	  if(!negativeEta) rEta = 11 + region; // Positive eta portion is offset by 11
+	  rgnCollection->push_back(L1CaloRegion((uint16_t) regionData, (unsigned) rEta, (unsigned) rPhi, (int16_t) 0));
+	}
       }
     }
   }  
@@ -228,7 +299,6 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     exit(1);      
   }
 
-  UCTGeometry g;
   double pt = 0;
   double eta = -999.;
   double phi = -999.;
@@ -240,7 +310,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     const UCTObject* object = *i;
     pt = ((double) object->et()) * caloScaleFactor;
     eta = g.getUCTTowerEta(object->iEta());
-    phi = g.getUCTTowerPhi(object->iPhi(), object->iEta());
+    phi = g.getUCTTowerPhi(object->iPhi());
     nEGCands->push_back(L1EmParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1EmParticle::kNonIsolated));
   }
   std::list<UCTObject*> isoEMObjs = summaryCard->getIsoEMObjs();
@@ -248,7 +318,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     const UCTObject* object = *i;
     pt = ((double) object->et()) * caloScaleFactor;
     eta = g.getUCTTowerEta(object->iEta());
-    phi = g.getUCTTowerPhi(object->iPhi(), object->iEta());
+    phi = g.getUCTTowerPhi(object->iPhi());
     iEGCands->push_back(L1EmParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1EmParticle::kIsolated));
   }
   std::list<UCTObject*> tauObjs = summaryCard->getTauObjs();
@@ -256,7 +326,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     const UCTObject* object = *i;
     pt = ((double) object->et()) * caloScaleFactor;
     eta = g.getUCTTowerEta(object->iEta());
-    phi = g.getUCTTowerPhi(object->iPhi(), object->iEta());
+    phi = g.getUCTTowerPhi(object->iPhi());
     nTauCands->push_back(L1JetParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1JetParticle::kTau));
   }
   std::list<UCTObject*> isoTauObjs = summaryCard->getIsoTauObjs();
@@ -264,7 +334,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     const UCTObject* object = *i;
     pt = ((double) object->et()) * caloScaleFactor;
     eta = g.getUCTTowerEta(object->iEta());
-    phi = g.getUCTTowerPhi(object->iPhi(), object->iEta());
+    phi = g.getUCTTowerPhi(object->iPhi());
     iTauCands->push_back(L1JetParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1JetParticle::kTau));
   }
   std::list<UCTObject*> centralJetObjs = summaryCard->getCentralJetObjs();
@@ -272,7 +342,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     const UCTObject* object = *i;
     pt = ((double) object->et()) * caloScaleFactor;
     eta = g.getUCTTowerEta(object->iEta());
-    phi = g.getUCTTowerPhi(object->iPhi(), object->iEta());
+    phi = g.getUCTTowerPhi(object->iPhi());
     cJetCands->push_back(L1JetParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1JetParticle::kCentral));
   }
   std::list<UCTObject*> forwardJetObjs = summaryCard->getForwardJetObjs();
@@ -280,7 +350,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     const UCTObject* object = *i;
     pt = ((double) object->et()) * caloScaleFactor;
     eta = g.getUCTTowerEta(object->iEta());
-    phi = g.getUCTTowerPhi(object->iPhi(), object->iEta());
+    phi = g.getUCTTowerPhi(object->iPhi());
     fJetCands->push_back(L1JetParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1JetParticle::kForward));
   }
 
@@ -290,7 +360,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   const UCTObject* met = summaryCard->getMET();
   pt = ((double) met->et()) * caloScaleFactor;
   eta = g.getUCTTowerEta(met->iEta());
-  phi = g.getUCTTowerPhi(met->iPhi(), met->iEta());
+  phi = g.getUCTTowerPhi(met->iPhi());
   metCands->push_back(L1EtMissParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1EtMissParticle::kMET, totET));
 
   const UCTObject* ht = summaryCard->getHT();
@@ -299,7 +369,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   const UCTObject* mht = summaryCard->getMHT();
   pt = ((double) mht->et()) * caloScaleFactor;
   eta = g.getUCTTowerEta(mht->iEta());
-  phi = g.getUCTTowerPhi(mht->iPhi(), mht->iEta());
+  phi = g.getUCTTowerPhi(mht->iPhi());
   mhtCands->push_back(L1EtMissParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1EtMissParticle::kMHT, totHT));
   
   iEvent.put(iEGCands, "Isolated");
@@ -354,12 +424,17 @@ L1TCaloSummary::endJob() {
 }
 
 // ------------ method called when starting to processes a run  ------------
-/*
-  void
-  L1TCaloSummary::beginRun(edm::Run const&, edm::EventSetup const&)
-  {
+void
+L1TCaloSummary::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup) {
+  if(!L1TCaloLayer1FetchLUTs(iSetup, ecalLUT, hcalLUT, hfLUT, useLSB, useCalib, useECALLUT, useHCALLUT, useHFLUT)) {
+    std::cerr << "L1TCaloLayer1::beginRun: failed to fetch LUTS - using unity" << std::endl;
   }
-*/
+  for(uint32_t twr = 0; twr < twrList.size(); twr++) {
+    twrList[twr]->setECALLUT(&ecalLUT);
+    twrList[twr]->setHCALLUT(&hcalLUT);
+    twrList[twr]->setHFLUT(&hfLUT);
+    }
+}
  
 // ------------ method called when ending the processing of a run  ------------
 /*
