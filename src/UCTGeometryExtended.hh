@@ -3,7 +3,7 @@
 
 #include "L1Trigger/L1TCaloLayer1/src/UCTGeometry.hh"
 
-class UCTGeometryExtended : UCTGeometry {
+class UCTGeometryExtended : public UCTGeometry {
 
 public:
 
@@ -19,8 +19,9 @@ public:
   UCTRegionIndex getUCTRegionSE(UCTRegionIndex center);
   UCTRegionIndex getUCTRegionSW(UCTRegionIndex center);
 
-  bool areNeighbors(UCTTowerIndex a, UCTTowerIndex b) {return false;}
-  bool isEdgeTower(UCTTowerIndex a) {return false;}
+  bool areNeighbors(UCTTowerIndex a, UCTTowerIndex b);
+
+  bool isEdgeTower(UCTTowerIndex a);
 
 };
 

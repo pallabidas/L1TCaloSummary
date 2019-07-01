@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "UCTGeometryExtended.hh"
+using namespace l1tcalo;
 
 UCTRegionIndex UCTGeometryExtended::getUCTRegionNorth(UCTRegionIndex center) {
   int eta = center.first;
@@ -27,7 +28,8 @@ UCTRegionIndex UCTGeometryExtended::getUCTRegionEast(UCTRegionIndex center) {
   uint32_t phi = center.second;
   eta += 1;
   if(eta == 0) eta = 1; // eta = 0 is illegal, go one above
-  if(eta > MaxUCTRegionsEta) eta = 0; // beyond high Eta edge - should not be used
+  int etaMax = MaxUCTRegionsEta;
+  if(eta > etaMax) eta = 0; // beyond high Eta edge - should not be used
   return UCTRegionIndex(eta, phi);
 }
 
@@ -36,7 +38,8 @@ UCTRegionIndex UCTGeometryExtended::getUCTRegionWest(UCTRegionIndex center) {
   uint32_t phi = center.second;
   eta -= 1;
   if(eta == 0) eta = -1; // eta = 0 is illegal, go one below
-  if(eta < -MaxUCTRegionsEta) eta = 0; // beyond high Eta edge - should not be used
+  int etaMin = -MaxUCTRegionsEta;
+  if(eta < etaMin) eta = 0; // beyond high Eta edge - should not be used
   return UCTRegionIndex(eta, phi);
 }
 
@@ -48,7 +51,8 @@ UCTRegionIndex UCTGeometryExtended::getUCTRegionNE(UCTRegionIndex center) {
   else if(phi > MaxUCTRegionsPhi) phi = 0xDEADBEEF;
   eta += 1;
   if(eta == 0) eta = 1; // eta = 0 is illegal, go one above
-  if(eta > MaxUCTRegionsEta) eta = 0; // beyond high Eta edge - should not be used
+  int etaMax = MaxUCTRegionsEta;
+  if(eta > etaMax) eta = 0; // beyond high Eta edge - should not be used
   return UCTRegionIndex(eta, phi);
 }
 
@@ -60,7 +64,8 @@ UCTRegionIndex UCTGeometryExtended::getUCTRegionNW(UCTRegionIndex center) {
   else if(phi > MaxUCTRegionsPhi) phi = 0xDEADBEEF;
   eta -= 1;
   if(eta == 0) eta = -1; // eta = 0 is illegal, go one below
-  if(eta < -MaxUCTRegionsEta) eta = 0; // beyond high Eta edge - should not be used
+  int etaMin = -MaxUCTRegionsEta;
+  if(eta < etaMin) eta = 0; // beyond high Eta edge - should not be used
   return UCTRegionIndex(eta, phi);
 }
 
@@ -72,7 +77,8 @@ UCTRegionIndex UCTGeometryExtended::getUCTRegionSE(UCTRegionIndex center) {
   else phi = 0xDEADBEEF;
   eta += 1;
   if(eta == 0) eta = 1; // eta = 0 is illegal, go one above
-  if(eta > MaxUCTRegionsEta) eta = 0; // beyond high Eta edge - should not be used
+  int etaMax = MaxUCTRegionsEta;
+  if(eta > etaMax) eta = 0; // beyond high Eta edge - should not be used
   return UCTRegionIndex(eta, phi);
 }
 
@@ -84,7 +90,22 @@ UCTRegionIndex UCTGeometryExtended::getUCTRegionSW(UCTRegionIndex center) {
   else phi = 0xDEADBEEF;
   eta -= 1;
   if(eta == 0) eta = -1; // eta = 0 is illegal, go one below
-  if(eta < -MaxUCTRegionsEta) eta = 0; // beyond high Eta edge - should not be used
+  int etaMin = -MaxUCTRegionsEta;
+  if(eta < etaMin) eta = 0; // beyond high Eta edge - should not be used
   return UCTRegionIndex(eta, phi);
 }
 
+bool UCTGeometryExtended::areNeighbors(UCTTowerIndex a, UCTTowerIndex b) {
+  int diffEta = std::abs(a.first - b.first);                 // Note eta values run -28 to +28, 0 excluded
+  int diffPhi = std::abs(((int) a.second - (int) b.second)); // Note phi values run 1-72, with 72 & 1 as neighbors
+  if((diffEta <= 1 || (a.first == -1 && b.first == 1) || (a.first == 1 && b.first == -1)) && (diffPhi <= 1 || diffPhi == 71)) return true;
+  return false;
+}
+
+bool UCTGeometryExtended::isEdgeTower(UCTTowerIndex a) {
+  int eta = a.first;
+  int etaMin = -MaxUCTRegionsEta;
+  int etaMax = MaxUCTRegionsEta;
+  if(eta == etaMin || eta == etaMax) return true;
+  return false;
+}

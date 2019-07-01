@@ -32,6 +32,8 @@
 #include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 
+#include "L1Trigger/L1TCaloLayer1/src/UCTParameters.hh"
+
 #include "L1Trigger/L1TCaloLayer1/src/UCTLayer1.hh"
 #include "L1Trigger/L1TCaloLayer1/src/UCTCrate.hh"
 #include "L1Trigger/L1TCaloLayer1/src/UCTCard.hh"
@@ -57,6 +59,7 @@
 
 #include "L1Trigger/L1TCaloLayer1/src/L1TCaloLayer1FetchLUTs.hh"
 
+using namespace l1tcalo;
 using namespace l1extra;
 using namespace std;
 
@@ -94,6 +97,10 @@ private:
   std::vector< std::vector< std::vector < uint32_t > > > hcalLUT;
   std::vector< std::vector< uint32_t > > hfLUT;
 
+  uint32_t nPumBins;
+
+  std::vector< std::vector< std::vector < uint32_t > > > pumLUT;
+
   std::vector< UCTTower* > twrList;
 
   bool useLSB;
@@ -101,8 +108,18 @@ private:
   bool useECALLUT;
   bool useHCALLUT;
   bool useHFLUT;
+
+  double caloScaleFactor;
+
+  uint32_t jetSeed;
+  uint32_t tauSeed;
+  float tauIsolationFactor;
+  uint32_t eGammaSeed;
+  double eGammaIsolationFactor;
+
   bool verbose;
 
+  UCTParameters uctParameters;
   UCTLayer1 *layer1;
   UCTSummaryCard *summaryCard;
   
@@ -127,14 +144,41 @@ L1TCaloSummary::L1TCaloSummary(const edm::ParameterSet& iConfig) :
   ecalLUT(28, std::vector< std::vector<uint32_t> >(2, std::vector<uint32_t>(256))),
   hcalLUT(28, std::vector< std::vector<uint32_t> >(2, std::vector<uint32_t>(256))),
   hfLUT(12, std::vector < uint32_t >(256)),
+  nPumBins(iConfig.getParameter<unsigned int>("nPumBins")),
+  pumLUT(nPumBins, std::vector< std::vector<uint32_t> >(2, std::vector<uint32_t>(13))),
   useLSB(iConfig.getParameter<bool>("useLSB")),
   useCalib(iConfig.getParameter<bool>("useCalib")),
   useECALLUT(iConfig.getParameter<bool>("useECALLUT")),
   useHCALLUT(iConfig.getParameter<bool>("useHCALLUT")),
   useHFLUT(iConfig.getParameter<bool>("useHFLUT")),
-  verbose(iConfig.getParameter<bool>("verbose")) 
+  caloScaleFactor(iConfig.getParameter<double>("caloScaleFactor")),
+  jetSeed(iConfig.getParameter<unsigned int>("jetSeed")),
+  tauSeed(iConfig.getParameter<unsigned int>("tauSeed")),
+  tauIsolationFactor(iConfig.getParameter<double>("tauIsolationFactor")),
+  eGammaSeed(iConfig.getParameter<unsigned int>("eGammaSeed")),
+  eGammaIsolationFactor(iConfig.getParameter<double>("eGammaIsolationFactor")),
+  verbose(iConfig.getParameter<bool>("verbose")),
+  uctParameters(iConfig.getParameter<double>("activityFraction"), 
+		iConfig.getParameter<double>("ecalActivityFraction"), 
+		iConfig.getParameter<double>("miscActivityFraction"))
 {
-  produces< L1CaloRegionCollection >( "Regions" );
+  std::vector<double> pumLUTData;
+  char pumLUTString[10];
+  for(uint32_t pumBin = 0; pumBin < nPumBins; pumBin++) {
+    for(uint32_t side = 0; side < 2; side++) {
+      if(side == 0) sprintf(pumLUTString, "pumLUT%2.2dp", pumBin);
+      else sprintf(pumLUTString, "pumLUT%2.2dn", pumBin);
+      pumLUTData = iConfig.getParameter<std::vector < double > >(pumLUTString);
+      for(uint32_t iEta = 0; iEta < std::max((uint32_t) pumLUTData.size(), MaxUCTRegionsEta); iEta++) {
+	pumLUT[pumBin][side][iEta] = (uint32_t) round(pumLUTData[iEta] / caloScaleFactor);
+      }
+      if(pumLUTData.size() != (MaxUCTRegionsEta))
+	std::cerr << "PUM LUT Data size integrity check failed; Expected size = " << MaxUCTRegionsEta
+		  << "; Provided size = " << pumLUTData.size()
+		  << "; Will use what is provided :(" << std::endl;
+    }
+  }
+  produces< L1CaloRegionCollection >();
   produces< L1EmParticleCollection >( "Isolated" ) ;
   produces< L1EmParticleCollection >( "NonIsolated" ) ;
   produces< L1JetParticleCollection >( "Central" ) ;
@@ -143,8 +187,8 @@ L1TCaloSummary::L1TCaloSummary(const edm::ParameterSet& iConfig) :
   produces< L1JetParticleCollection >( "IsoTau" ) ;
   produces< L1EtMissParticleCollection >( "MET" ) ;
   produces< L1EtMissParticleCollection >( "MHT" ) ;
-  layer1 = new UCTLayer1;
-  summaryCard = new UCTSummaryCard(layer1);
+  layer1 = new UCTLayer1(&uctParameters);
+  summaryCard = new UCTSummaryCard(layer1, &pumLUT, jetSeed, tauSeed, tauIsolationFactor, eGammaSeed, eGammaIsolationFactor);
   vector<UCTCrate*> crates = layer1->getCrates();
   for(uint32_t crt = 0; crt < crates.size(); crt++) {
     vector<UCTCard*> cards = crates[crt]->getCards();
@@ -159,7 +203,6 @@ L1TCaloSummary::L1TCaloSummary(const edm::ParameterSet& iConfig) :
     }
   }
 }
-
 
 L1TCaloSummary::~L1TCaloSummary() {
   if(layer1 != 0) delete layer1;
@@ -284,15 +327,29 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
 	uint32_t region = regions[rgn]->getRegion();
 	bool negativeEta = regions[rgn]->isNegativeEta();
 	uint32_t rPhi = g.getUCTRegionPhiIndex(crate, card);
-	if(region < NRegionsInCard) { // We only store the Barrel and Endcap - HF has changed in the upgrade
-	  uint32_t rEta = 10 - region; // UCT region is 0-6 for B/E but GCT eta goes 0-21, 0-3 -HF, 4-10 -B/E, 11-17 +B/E, 18-21 +HF
-	  if(!negativeEta) rEta = 11 + region; // Positive eta portion is offset by 11
-	  rgnCollection->push_back(L1CaloRegion((uint16_t) regionData, (unsigned) rEta, (unsigned) rPhi, (int16_t) 0));
-	}
+	// We want to reuse L1CaloRegion and L1CaloRegionDetID
+	// We do not want to change those classes too much
+	// We want comparison to legacy for Barrel and Endcap to work transparently
+	// Noting that rEta is packed in 5 bits of L1CaloRegionDetID, we have a scheme!
+	// We store the Barrel and Endcap regions in the same location as done for RCT
+	// HF has changed in the upgrade, 6x2 HF regions instead of 4x2 in case of RCT
+	// Note that for upgrade region numbers range 0-6 for Barrel/Endcap and 7-12 for HF
+	// So, the scheme used for rEta for upgrade is:
+	// rEta= 0- 3 for -HF regions 7-10
+	// rEta= 4-10 for -B/E regions 0-6
+	// rEta=11-17 for +B/E regions 0-6
+	// rEta=18-23 for +HF regions 7-12
+	// rEta=30 for -HF region 11
+	// rEta=31 for -HF region 12
+	uint32_t rEta = 10 - region;
+	if(negativeEta && region == 11) rEta = 30;
+	if(negativeEta && region == 12) rEta = 31;
+	if(!negativeEta) rEta = 11 + region; // Positive eta portion is offset by 11
+	rgnCollection->push_back(L1CaloRegion((uint16_t) regionData, (unsigned) rEta, (unsigned) rPhi, (int16_t) 0));
       }
     }
   }  
-  iEvent.put(rgnCollection, "Regions");
+  iEvent.put(rgnCollection);
 
   if(!summaryCard->process()) {
     std::cerr << "UCT: Failed to process summary card" << std::endl;
@@ -344,6 +401,9 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     eta = g.getUCTTowerEta(object->iEta());
     phi = g.getUCTTowerPhi(object->iPhi());
     cJetCands->push_back(L1JetParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1JetParticle::kCentral));
+    if(pt > 150.) {
+      std::cout << "Jet: pt = " << pt << " eta = " << eta << " phi = " << phi << std::endl;
+    }
   }
   std::list<UCTObject*> forwardJetObjs = summaryCard->getForwardJetObjs();
   for(std::list<UCTObject*>::const_iterator i = forwardJetObjs.begin(); i != forwardJetObjs.end(); i++) {
@@ -362,6 +422,8 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   eta = g.getUCTTowerEta(met->iEta());
   phi = g.getUCTTowerPhi(met->iPhi());
   metCands->push_back(L1EtMissParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1EtMissParticle::kMET, totET));
+
+  
 
   const UCTObject* ht = summaryCard->getHT();
   pt = ((double) ht->et()) * caloScaleFactor;
@@ -390,17 +452,15 @@ void L1TCaloSummary::print() {
     for(uint32_t crd = 0; crd < cards.size(); crd++) {
       vector<UCTRegion*> regions = cards[crd]->getRegions();
       for(uint32_t rgn = 0; rgn < regions.size(); rgn++) {
-	if(regions[rgn]->et() > 0) {
+	if(regions[rgn]->et() > 10) {
 	  int hitEta = regions[rgn]->hitCaloEta();
 	  int hitPhi = regions[rgn]->hitCaloPhi();
 	  vector<UCTTower*> towers = regions[rgn]->getTowers();
-	  bool header = true;
 	  for(uint32_t twr = 0; twr < towers.size(); twr++) {
 	    if(towers[twr]->caloPhi() == hitPhi && towers[twr]->caloEta() == hitEta) {
 	      std::cout << "*";
 	    }
-	    std::cout << *towers[twr];
-	    if(header) header = false;
+	    if(towers[twr]->et() > 10) std::cout << *towers[twr];
 	  }
 	  std::cout << *regions[rgn];
 	}
@@ -424,6 +484,7 @@ L1TCaloSummary::endJob() {
 }
 
 // ------------ method called when starting to processes a run  ------------
+
 void
 L1TCaloSummary::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup) {
   if(!L1TCaloLayer1FetchLUTs(iSetup, ecalLUT, hcalLUT, hfLUT, useLSB, useCalib, useECALLUT, useHCALLUT, useHFLUT)) {
@@ -433,7 +494,7 @@ L1TCaloSummary::beginRun(edm::Run const& iRun, edm::EventSetup const& iSetup) {
     twrList[twr]->setECALLUT(&ecalLUT);
     twrList[twr]->setHCALLUT(&hcalLUT);
     twrList[twr]->setHFLUT(&hfLUT);
-    }
+  }
 }
  
 // ------------ method called when ending the processing of a run  ------------
