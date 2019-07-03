@@ -73,7 +73,7 @@ process.source = cms.Source("PoolSource",
 outputFile = '/data/' + os.environ['USER'] + '/l1tCaloSummary-' + str(options.runNumber) + '.root'
 
 process.out = cms.OutputModule("PoolOutputModule",
-    fileName = cms.untracked.string(outputFile),
+    fileName = cms.untracked.string('l1tCaloSummary.root'),
     outputCommands = cms.untracked.vstring('drop *', 'keep *_*_*_L1TCaloSummaryTest')
 )
 
