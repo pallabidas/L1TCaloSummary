@@ -349,7 +349,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
       }
     }
   }  
-  iEvent.put(std::move(rgnCollection), "UCTRegions");
+  iEvent.put(std::move(rgnCollection), "");
 
   if(!summaryCard->process()) {
     std::cerr << "UCT: Failed to process summary card" << std::endl;
