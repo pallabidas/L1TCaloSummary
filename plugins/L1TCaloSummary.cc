@@ -224,15 +224,15 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::Handle<HcalTrigPrimDigiCollection> hcalTPs;
   iEvent.getByToken(hcalTPSource, hcalTPs);
 
-  std::auto_ptr<L1CaloRegionCollection> rgnCollection (new L1CaloRegionCollection);
-  std::auto_ptr<L1EmParticleCollection> iEGCands(new L1EmParticleCollection);
-  std::auto_ptr<L1EmParticleCollection> nEGCands(new L1EmParticleCollection);
-  std::auto_ptr<L1JetParticleCollection> iTauCands(new L1JetParticleCollection);
-  std::auto_ptr<L1JetParticleCollection> nTauCands(new L1JetParticleCollection);
-  std::auto_ptr<L1JetParticleCollection> cJetCands(new L1JetParticleCollection);
-  std::auto_ptr<L1JetParticleCollection> fJetCands(new L1JetParticleCollection);
-  std::auto_ptr<L1EtMissParticleCollection> metCands(new L1EtMissParticleCollection);
-  std::auto_ptr<L1EtMissParticleCollection> mhtCands(new L1EtMissParticleCollection);
+  std::unique_ptr<L1CaloRegionCollection> rgnCollection (new L1CaloRegionCollection);
+  std::unique_ptr<L1EmParticleCollection> iEGCands(new L1EmParticleCollection);
+  std::unique_ptr<L1EmParticleCollection> nEGCands(new L1EmParticleCollection);
+  std::unique_ptr<L1JetParticleCollection> iTauCands(new L1JetParticleCollection);
+  std::unique_ptr<L1JetParticleCollection> nTauCands(new L1JetParticleCollection);
+  std::unique_ptr<L1JetParticleCollection> cJetCands(new L1JetParticleCollection);
+  std::unique_ptr<L1JetParticleCollection> fJetCands(new L1JetParticleCollection);
+  std::unique_ptr<L1EtMissParticleCollection> metCands(new L1EtMissParticleCollection);
+  std::unique_ptr<L1EtMissParticleCollection> mhtCands(new L1EtMissParticleCollection);
 
   uint32_t expectedTotalET = 0;
 
@@ -302,7 +302,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   // Crude check if total ET is approximately OK!
   // We can't expect exact match as there is region level saturation to 10-bits
   // 1% is good enough
-  int diff = abs(layer1->et() - expectedTotalET);
+  int diff = abs((int)layer1->et() - (int)expectedTotalET);
   if(verbose && diff > 0.01 * expectedTotalET ) {
     print();
     std::cout << "Expected " 
@@ -349,7 +349,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
       }
     }
   }  
-  iEvent.put(rgnCollection);
+  iEvent.put(std::move(rgnCollection), "");
 
   if(!summaryCard->process()) {
     std::cerr << "UCT: Failed to process summary card" << std::endl;
@@ -434,14 +434,14 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   phi = g.getUCTTowerPhi(mht->iPhi());
   mhtCands->push_back(L1EtMissParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1EtMissParticle::kMHT, totHT));
   
-  iEvent.put(iEGCands, "Isolated");
-  iEvent.put(nEGCands, "NonIsolated");
-  iEvent.put(iTauCands, "IsoTau");
-  iEvent.put(nTauCands, "Tau");
-  iEvent.put(cJetCands, "Central");
-  iEvent.put(fJetCands, "Forward");
-  iEvent.put(metCands, "MET");
-  iEvent.put(mhtCands, "MHT");
+  iEvent.put(std::move(iEGCands), "Isolated");
+  iEvent.put(std::move(nEGCands), "NonIsolated");
+  iEvent.put(std::move(iTauCands), "IsoTau");
+  iEvent.put(std::move(nTauCands), "Tau");
+  iEvent.put(std::move(cJetCands), "Central");
+  iEvent.put(std::move(fJetCands), "Forward");
+  iEvent.put(std::move(metCands), "MET");
+  iEvent.put(std::move(mhtCands), "MHT");
 
 }
 
