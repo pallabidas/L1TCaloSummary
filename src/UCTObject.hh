@@ -1,6 +1,9 @@
 #ifndef UCTObject_hh
 #define UCTObject_hh
 
+#include <bitset>
+using std::bitset;
+
 class UCTObject {
 public:
 
@@ -27,6 +30,9 @@ public:
     myIsolation(isolation),
     myEt3x3(et3x3)
   {
+    myActiveTowerEta = 0;
+    myActiveTowerPhi = 0;
+    myNTaus = 0;
   }
   
   virtual ~UCTObject() {;}
@@ -75,6 +81,12 @@ public:
   const uint32_t pileup() const {return myPileup;}
   const uint32_t isolation() const {return myIsolation;}
   const uint32_t et3x3() const {return myEt3x3;}
+  const uint32_t nTaus() const {return myNTaus;}
+  const bitset<12> activeTowerEta() const{return myActiveTowerEta;}
+  const bitset<12> activeTowerPhi() const{return myActiveTowerPhi;}
+  bool setNTaus(uint32_t in){myNTaus = in; return true;}
+  bool setActiveTowerEta(bitset<12> in){myActiveTowerEta = in; return true;}
+  bool setActiveTowerPhi(bitset<12> in){myActiveTowerPhi = in; return true;}
 
   void print(bool header = true);
 
@@ -100,6 +112,9 @@ private:
   uint32_t myPileup;
   uint32_t myIsolation;
   uint32_t myEt3x3;
+  uint32_t myNTaus;
+  bitset<12> myActiveTowerEta;
+  bitset<12> myActiveTowerPhi;
 
 };
 

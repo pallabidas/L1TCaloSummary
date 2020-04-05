@@ -36,6 +36,7 @@ public:
   const std::list<UCTObject*>& getIsoTauObjs() {return isoTauObjs;}
   const std::list<UCTObject*>& getCentralJetObjs() {return centralJetObjs;}
   const std::list<UCTObject*>& getForwardJetObjs() {return forwardJetObjs;}
+  const std::list<UCTObject*>& getBoostedJetObjs() {return boostedJetObjs;}
 
   const UCTObject* getET() {return ET;}
   const UCTObject* getMET() {return MET;}
@@ -80,6 +81,7 @@ private:
   std::list<UCTObject*> isoTauObjs;
   std::list<UCTObject*> centralJetObjs;
   std::list<UCTObject*> forwardJetObjs;
+  std::list<UCTObject*> boostedJetObjs;
 
   UCTObject *ET;
   UCTObject *MET;

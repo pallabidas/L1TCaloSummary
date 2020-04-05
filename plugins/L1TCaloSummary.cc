@@ -231,6 +231,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   std::unique_ptr<L1JetParticleCollection> nTauCands(new L1JetParticleCollection);
   std::unique_ptr<L1JetParticleCollection> cJetCands(new L1JetParticleCollection);
   std::unique_ptr<L1JetParticleCollection> fJetCands(new L1JetParticleCollection);
+  std::unique_ptr<L1JetParticleCollection> bJetCands(new L1JetParticleCollection);
   std::unique_ptr<L1EtMissParticleCollection> metCands(new L1EtMissParticleCollection);
   std::unique_ptr<L1EtMissParticleCollection> mhtCands(new L1EtMissParticleCollection);
 
@@ -413,6 +414,14 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
     phi = g.getUCTTowerPhi(object->iPhi());
     fJetCands->push_back(L1JetParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1JetParticle::kForward));
   }
+  std::list<UCTObject*> boostedJetObjs = summaryCard->getBoostedJetObjs();
+  for(std::list<UCTObject*>::const_iterator i = boostedJetObjs.begin(); i != boostedJetObjs.end(); i++) {
+    const UCTObject* object = *i;
+    pt = ((double) object->et()) * caloScaleFactor;
+    eta = g.getUCTTowerEta(object->iEta());
+    phi = g.getUCTTowerPhi(object->iPhi());
+    bJetCands->push_back(L1JetParticle(math::PtEtaPhiMLorentzVector(pt, eta, phi, mass), L1JetParticle::kCentral));// using kCentral for now, need a new type
+  }
 
   const UCTObject* et = summaryCard->getET();
   pt = ((double) et->et()) * caloScaleFactor;
@@ -440,6 +449,7 @@ L1TCaloSummary::produce(edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.put(std::move(nTauCands), "Tau");
   iEvent.put(std::move(cJetCands), "Central");
   iEvent.put(std::move(fJetCands), "Forward");
+  iEvent.put(std::move(bJetCands), "Boosted");
   iEvent.put(std::move(metCands), "MET");
   iEvent.put(std::move(mhtCands), "MHT");
 
