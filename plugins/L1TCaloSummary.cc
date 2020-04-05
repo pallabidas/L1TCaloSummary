@@ -183,6 +183,7 @@ L1TCaloSummary::L1TCaloSummary(const edm::ParameterSet& iConfig) :
   produces< L1EmParticleCollection >( "NonIsolated" ) ;
   produces< L1JetParticleCollection >( "Central" ) ;
   produces< L1JetParticleCollection >( "Forward" ) ;
+  produces< L1JetParticleCollection >( "Boosted" ) ;
   produces< L1JetParticleCollection >( "Tau" ) ;
   produces< L1JetParticleCollection >( "IsoTau" ) ;
   produces< L1EtMissParticleCollection >( "MET" ) ;
