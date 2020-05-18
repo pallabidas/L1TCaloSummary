@@ -1,11 +1,13 @@
 #ifndef UCTObject_hh
 #define UCTObject_hh
 
+//#include "L1Trigger/L1TCaloLayer1/src/UCTTower.hh"
 #include <bitset>
 using std::bitset;
 
 class UCTObject {
 public:
+
 
   enum UCTObjectType {
     jet = 0x0000,
@@ -84,13 +86,16 @@ public:
   const uint32_t nTaus() const {return myNTaus;}
   const bitset<12> activeTowerEta() const{return myActiveTowerEta;}
   const bitset<12> activeTowerPhi() const{return myActiveTowerPhi;}
+  const uint32_t *boostedJetTowers() const{return myBoostedJetTowers;}
   bool setNTaus(uint32_t in){myNTaus = in; return true;}
   bool setActiveTowerEta(bitset<12> in){myActiveTowerEta = in; return true;}
   bool setActiveTowerPhi(bitset<12> in){myActiveTowerPhi = in; return true;}
+  bool setBoostedJetTowers(uint32_t *in){myBoostedJetTowers = in; return true;}
 
   void print(bool header = true);
 
 private:
+
 
   // No default constructor is needed
 
@@ -99,6 +104,7 @@ private:
   // No copy constructor is needed
 
   UCTObject(const UCTObject&);
+
 
   // Object data
 
@@ -115,6 +121,7 @@ private:
   uint32_t myNTaus;
   bitset<12> myActiveTowerEta;
   bitset<12> myActiveTowerPhi;
+  uint32_t *myBoostedJetTowers;
 
 };
 
