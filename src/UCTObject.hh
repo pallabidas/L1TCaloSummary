@@ -84,9 +84,11 @@ public:
   const uint32_t nTaus() const {return myNTaus;}
   const bitset<12> activeTowerEta() const{return myActiveTowerEta;}
   const bitset<12> activeTowerPhi() const{return myActiveTowerPhi;}
+  const uint32_t *boostedJetTowers() const{return myBoostedJetTowers;} //for storing towers
   bool setNTaus(uint32_t in){myNTaus = in; return true;}
   bool setActiveTowerEta(bitset<12> in){myActiveTowerEta = in; return true;}
   bool setActiveTowerPhi(bitset<12> in){myActiveTowerPhi = in; return true;}
+  bool setBoostedJetTowers(uint32_t *in){myBoostedJetTowers = in; return true;} //for storing towers
 
   void print(bool header = true);
 
@@ -115,6 +117,7 @@ private:
   uint32_t myNTaus;
   bitset<12> myActiveTowerEta;
   bitset<12> myActiveTowerPhi;
+  uint32_t *myBoostedJetTowers;
 
 };
 
