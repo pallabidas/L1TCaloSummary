@@ -141,10 +141,11 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
   // We should never need beyond nearest-neighbor for most
   // objects - eGamma, tau or jet
 
-  uint32_t *boostedJetTowers = (uint32_t*)malloc(12 * 12 * sizeof(uint32_t)); //for storing towers
+  std::vector<uint32_t> boostedJetTowers;
+  boostedJetTowers.clear();
   for(size_t iPhi = 0; iPhi < 12; iPhi++){
     for(size_t iEta = 0; iEta < 12; iEta++) {
-      boostedJetTowers[iEta*12+iPhi] = 0;
+      boostedJetTowers.push_back(0);
     }
   }
 
@@ -473,7 +474,6 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     boostedJet->setActiveTowerPhi(phi);
     boostedJet->setBoostedJetTowers(boostedJetTowers);
     boostedJetObjs.push_back(boostedJet);
-    free(boostedJetTowers);
 
     if(jetET > 150) {
       std::cout << "Jet (ET, eta, phi) = (" << std::dec << jetET << ", " << hitCaloEta << ", " << hitCaloPhi << ")" << std::endl;
@@ -486,6 +486,13 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
       if(nwRegion != nullptr) std::cout << "NE " << *nwRegion;
       if(seRegion != nullptr) std::cout << "SE " << *seRegion;
       if(swRegion != nullptr) std::cout << "SW " << *swRegion;
+      //std::cout << "(INSIDE UCTSummaryCard) tower et: "<< std::endl;
+      //for(uint32_t iPhi = 0; iPhi < 12; iPhi++){
+      //  for(uint32_t iEta = 0; iEta < 12; iEta++) {
+      //    std::cout <<  boostedJetTowers[iEta*12+iPhi] <<setw(20)<<"";
+      //  } 
+      //}
+      //std::cout<<"\n"<<"eta: "<<eta.to_string()<<"\t"<<"phi: "<<phi.to_string()<<std::endl; 
     }
   }
     
