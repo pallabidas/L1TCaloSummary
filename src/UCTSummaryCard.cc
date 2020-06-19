@@ -171,7 +171,10 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
   int phiOffset = 4;
   for(size_t iPhi = 0; iPhi < 4; iPhi++){
     for(size_t iEta = 0; iEta < 4; iEta++) {
-      if(iEta*4+iPhi < cRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = cRegion->towers[iEta*4+iPhi]->et();
+      if(iEta*4+iPhi < cRegion->towers.size()) {
+        if(center.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = cRegion->towers[iEta*4+iPhi]->et();
+        else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = cRegion->towers[iEta*4+iPhi]->et();
+      }
     }
   }
 
@@ -214,10 +217,13 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
 
     //get the towers from North
     int etaOffset = 4;
-    int phiOffset = 0;
+    int phiOffset = 8;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < northRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = northRegion->towers[iEta*4+iPhi]->et();
+        if(iEta*4+iPhi < northRegion->towers.size()) {
+           if(northIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = northRegion->towers[iEta*4+iPhi]->et();
+           else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = northRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -247,10 +253,13 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
 
     //get the towers from south
     int etaOffset = 4;
-    int phiOffset = 8;
+    int phiOffset = 0;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < southRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = southRegion->towers[iEta*4+iPhi]->et(); 
+        if(iEta*4+iPhi < southRegion->towers.size()) {
+          if(southIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = southRegion->towers[iEta*4+iPhi]->et();
+          else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = southRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -279,11 +288,14 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     westIsEGammaLike = westRegion->isEGammaLike();
 
     //get the towers from west
-    int etaOffset = 8;
+    int etaOffset = 0;
     int phiOffset = 4;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < westRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = westRegion->towers[iEta*4+iPhi]->et();
+        if(iEta*4+iPhi < westRegion->towers.size()) {
+          if(westIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = westRegion->towers[iEta*4+iPhi]->et();
+          else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = westRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -313,11 +325,14 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     eastIsEGammaLike = eastRegion->isEGammaLike();
 
     //get the towers from east
-    int etaOffset = 0;
+    int etaOffset = 8;
     int phiOffset = 4;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < eastRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = eastRegion->towers[iEta*4+iPhi]->et();
+        if(iEta*4+iPhi < eastRegion->towers.size()) {
+          if(eastIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = eastRegion->towers[iEta*4+iPhi]->et();
+          else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = eastRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -343,11 +358,14 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     nwHitTower = nwRegion->hitTowerIndex();
 
     //get the towers from north west
-    int etaOffset = 8;
-    int phiOffset = 0;
+    int etaOffset = 0;
+    int phiOffset = 8;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < nwRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = nwRegion->towers[iEta*4+iPhi]->et();
+        if(iEta*4+iPhi < nwRegion->towers.size()) {
+          if(nwIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = nwRegion->towers[iEta*4+iPhi]->et();
+          else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = nwRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -373,11 +391,14 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     neHitTower = neRegion->hitTowerIndex();
 
     //get the towers from north east
-    int etaOffset = 0;
-    int phiOffset = 0;
+    int etaOffset = 8;
+    int phiOffset = 8;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < neRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = neRegion->towers[iEta*4+iPhi]->et();
+        if(iEta*4+iPhi < neRegion->towers.size()) {
+           if(neIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = neRegion->towers[iEta*4+iPhi]->et();
+           else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = neRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -403,11 +424,14 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     swHitTower = swRegion->hitTowerIndex();
 
     //get the towers from south west
-    int etaOffset = 8;
-    int phiOffset = 8;
+    int etaOffset = 0;
+    int phiOffset = 0;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < swRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = swRegion->towers[iEta*4+iPhi]->et();
+        if(iEta*4+iPhi < swRegion->towers.size()) {
+          if(swIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = swRegion->towers[iEta*4+iPhi]->et();
+          else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = swRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -432,11 +456,14 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     seHitTower = seRegion->hitTowerIndex();
 
     //get the towers from south east
-    int etaOffset = 0;
-    int phiOffset = 8;
+    int etaOffset = 8;
+    int phiOffset = 0;
     for(uint32_t iPhi = 0; iPhi < 4; iPhi++){
       for(uint32_t iEta = 0; iEta < 4; iEta++) {
-        if(iEta*4+iPhi < seRegion->towers.size()) boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = seRegion->towers[iEta*4+iPhi]->et();
+        if(iEta*4+iPhi < seRegion->towers.size()) {
+          if(seIndex.first < 0) boostedJetTowers[(etaOffset+3-iEta)*12+(phiOffset+iPhi)] = seRegion->towers[iEta*4+iPhi]->et();
+          else boostedJetTowers[(etaOffset+iEta)*12+(phiOffset+iPhi)] = seRegion->towers[iEta*4+iPhi]->et();
+        }
       }
     }
   }
@@ -483,9 +510,16 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
       if(westRegion != nullptr) std::cout << "West " << *westRegion;
       if(eastRegion != nullptr) std::cout << "East " << *eastRegion;
       if(neRegion != nullptr) std::cout << "NE " << *neRegion;
-      if(nwRegion != nullptr) std::cout << "NE " << *nwRegion;
+      if(nwRegion != nullptr) std::cout << "NW " << *nwRegion;
       if(seRegion != nullptr) std::cout << "SE " << *seRegion;
       if(swRegion != nullptr) std::cout << "SW " << *swRegion;
+      //std::cout << nwActiveTowerEta.to_string() <<"\t"<< nActiveTowerEta.to_string() <<"\t"<< neActiveTowerEta.to_string() <<std::endl;
+      //std::cout << wActiveTowerEta.to_string() <<"\t"<< cActiveTowerEta.to_string() <<"\t"<< eActiveTowerEta.to_string() <<std::endl;
+      //std::cout << swActiveTowerEta.to_string() <<"\t"<< sActiveTowerEta.to_string() <<"\t"<< seActiveTowerEta.to_string() <<std::endl;
+      //std::cout << nwActiveTowerPhi.to_string() <<"\t"<< nActiveTowerPhi.to_string() <<"\t"<< neActiveTowerPhi.to_string() <<std::endl;
+      //std::cout << wActiveTowerPhi.to_string() <<"\t"<< cActiveTowerPhi.to_string() <<"\t"<< eActiveTowerPhi.to_string() <<std::endl;
+      //std::cout << swActiveTowerPhi.to_string() <<"\t"<< sActiveTowerPhi.to_string() <<"\t"<< seActiveTowerPhi.to_string() <<std::endl;
+
       //std::cout << "(INSIDE UCTSummaryCard) tower et: "<< std::endl;
       //for(uint32_t iPhi = 0; iPhi < 12; iPhi++){
       //  for(uint32_t iEta = 0; iEta < 12; iEta++) {
