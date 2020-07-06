@@ -85,10 +85,14 @@ public:
   const bitset<12> activeTowerEta() const{return myActiveTowerEta;}
   const bitset<12> activeTowerPhi() const{return myActiveTowerPhi;}
   const std::vector<uint32_t> boostedJetTowers() const{return myBoostedJetTowers;}
+  const std::vector<uint32_t> boostedJetRegionET() const{return myBoostedJetRegionET;}
+  const std::vector<uint32_t> boostedJetRegionTauVeto() const{return myBoostedJetRegionTauVeto;}
   bool setNTaus(uint32_t in){myNTaus = in; return true;}
   bool setActiveTowerEta(bitset<12> in){myActiveTowerEta = in; return true;}
   bool setActiveTowerPhi(bitset<12> in){myActiveTowerPhi = in; return true;}
   bool setBoostedJetTowers(std::vector<uint32_t> in){myBoostedJetTowers = in; return true;}
+  bool setBoostedJetRegionET(std::vector<uint32_t> in){myBoostedJetRegionET = in; return true;}
+  bool setBoostedJetRegionTauVeto(std::vector<uint32_t> in){myBoostedJetRegionTauVeto = in; return true;}
 
   void print(bool header = true);
 
@@ -118,6 +122,8 @@ private:
   bitset<12> myActiveTowerEta;
   bitset<12> myActiveTowerPhi;
   std::vector<uint32_t> myBoostedJetTowers;
+  std::vector<uint32_t> myBoostedJetRegionET;
+  std::vector<uint32_t> myBoostedJetRegionTauVeto;
 
 };
 

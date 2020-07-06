@@ -149,6 +149,13 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     }
   }
 
+  std::vector<uint32_t> boostedJetRegionET, boostedJetRegionTauVeto;
+  boostedJetRegionET.clear(); boostedJetRegionTauVeto.clear();
+  for(size_t i = 0; i < 9; i++){
+    boostedJetRegionET.push_back(0);
+    boostedJetRegionTauVeto.push_back(0);
+  } 
+
   UCTGeometryExtended g;
 
   const UCTRegion* cRegion(uctLayer1->getRegion(center));
@@ -190,6 +197,8 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
   int hitCaloEta = cRegion->hitCaloEta();
   int hitCaloPhi = cRegion->hitCaloPhi();
 
+  boostedJetRegionET[4] = centralET; boostedJetRegionTauVeto[4] = cRegion->isTauLike();
+
   UCTRegionIndex northIndex = g.getUCTRegionNorth(center);
   const UCTRegion* northRegion(uctLayer1->getRegion(northIndex));
   uint32_t northET = 0;
@@ -226,6 +235,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[3] = northET; boostedJetRegionTauVeto[3] = northRegion->isTauLike();
   }
 
   UCTRegionIndex southIndex = g.getUCTRegionSouth(center);
@@ -262,6 +272,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[5] = southET; boostedJetRegionTauVeto[5] = southRegion->isTauLike();
   }
 
   UCTRegionIndex westIndex = g.getUCTRegionWest(center);
@@ -298,6 +309,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[7] = westET; boostedJetRegionTauVeto[7] = westRegion->isTauLike();
   }
 
   UCTRegionIndex eastIndex = g.getUCTRegionEast(center);
@@ -335,6 +347,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[1] = eastET; boostedJetRegionTauVeto[1] = eastRegion->isTauLike();
   }
 
   UCTRegionIndex nwIndex = g.getUCTRegionNW(center);
@@ -368,6 +381,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[6] = nwET; boostedJetRegionTauVeto[6] = nwRegion->isTauLike();
   }
 
   UCTRegionIndex neIndex = g.getUCTRegionNE(center);
@@ -401,6 +415,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[0] = neET; boostedJetRegionTauVeto[0] = neRegion->isTauLike();
   }
 
   UCTRegionIndex swIndex = g.getUCTRegionSW(center);
@@ -434,6 +449,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[8] = swET; boostedJetRegionTauVeto[8] = swRegion->isTauLike();
   }
 
   UCTRegionIndex seIndex = g.getUCTRegionSE(center);
@@ -466,6 +482,7 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
         }
       }
     }
+    boostedJetRegionET[2] = seET; boostedJetRegionTauVeto[2] = seRegion->isTauLike();
   }
 
   uint32_t et3x3 = centralET + northET + nwET + westET + swET + southET + seET + eastET + neET;
@@ -500,6 +517,8 @@ bool UCTSummaryCard::processRegion(UCTRegionIndex center) {
     boostedJet->setActiveTowerEta(eta);
     boostedJet->setActiveTowerPhi(phi);
     boostedJet->setBoostedJetTowers(boostedJetTowers);
+    boostedJet->setBoostedJetRegionET(boostedJetRegionET);
+    boostedJet->setBoostedJetRegionTauVeto(boostedJetRegionTauVeto);
     boostedJetObjs.push_back(boostedJet);
 
     if(jetET > 150) {
